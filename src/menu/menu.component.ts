@@ -111,6 +111,7 @@ export class MenuComponent implements OnChanges {
     if (this.cu) {
       this.cu.disconnect();
     }
+    // TODO: electron app.exit() / window.close()
     this.platform.exitApp();
     this.logger.info('Exited application');
   }
