@@ -2,5 +2,7 @@
   "name": "Open Lap",
   "app_id": "b496a218",
   "type": "ionic-angular",
-  "integrations": {}
+  "integrations": {
+    "cordova": {}
+  }
 }
