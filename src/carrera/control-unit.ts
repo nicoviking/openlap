@@ -19,11 +19,14 @@ import { Logger } from '../core';
 import { DataView } from './data-view';
 import { Peripheral } from './peripheral';
 
-const CONNECTION_TIMEOUT = 3000;
-const MIN_RECONNECT_DELAY = 500;
-const MAX_RECONNECT_DELAY = 5000;
+const CONNECTION_TIMEOUT = 5000;
+const REQUEST_TIMEOUT = 1000;
+const MIN_RECONNECT_DELAY = 2000;
+const MAX_RECONNECT_DELAY = 10000;
 
 const POLL_COMMAND = DataView.fromString('?');
+const RESET_COMMAND = DataView.fromString('=10');
+const VERSION_COMMAND = DataView.fromString('0');
 
 export enum ControlUnitButton {
   ESC = 1,
@@ -52,25 +55,20 @@ export class ControlUnit {
 
   constructor(public peripheral: Peripheral, private logger: Logger) {
     this.connection = this.peripheral.connect({
-      next: () => {
-        this.connection.next(POLL_COMMAND.buffer);
-      }
+      next: () => this.connection.next(POLL_COMMAND.buffer)
     });
-    // TODO: different timeout for reconnect/polling
-    this.data = this.connection.timeout(CONNECTION_TIMEOUT).retryWhen(errors => {
-      return this.reconnect(errors);
-    }).do(() => {
-      if (this.state.value !== 'connected') {
-        this.state.next('connected');
-      }
+    const connection = this.connection.share();  // FIXME: concat does not define order of (un)subscribe
+    this.data = Observable.concat(
+      connection.timeout(CONNECTION_TIMEOUT).take(1).do(() => this.state.next('connected')),
+      connection.timeout(REQUEST_TIMEOUT)
+    ).retryWhen(errors => {
+      return this.doReconnect(errors);
     }).do(() => {
       this.poll();
     }).map((data: ArrayBuffer) => {
       return new DataView(data);
     }).publish();
-    // like publishBehavior() with no initial value
     this.status = this.data.filter((view) => {
-      // TODO: check CRC
       return view.byteLength >= 16 && view.toString(0, 2) === '?:';
     }).publishReplay(1).refCount();
   }
@@ -78,12 +76,24 @@ export class ControlUnit {
   connect() {
     this.state.next('connecting');
     this.subscription = this.data.connect();
+    return Promise.resolve();
   }
 
   disconnect() {
     if (this.subscription) {
       this.subscription.unsubscribe();
     }
+    return Promise.resolve();
+  }
+
+  reconnect() {
+    return new Promise(resolve => {
+      this.disconnect();
+      setTimeout(() => {
+        this.connect();
+        resolve();
+      }, MIN_RECONNECT_DELAY);
+    });
   }
 
   getState(): Observable<'disconnected' | 'connecting' | 'connected'> {
@@ -129,19 +139,16 @@ export class ControlUnit {
   getVersion(): Observable<string> {
     // TODO: timeout, retry?
     const observable = this.data.filter((view) => {
-      // TODO: check CRC
       return view.byteLength == 6 && view.toString(0, 1) == '0';
     }).map(view => {
       return view.toString(1, 4);
-    }).map(s => {
-      return s.replace(/(\d)(\d+)/, '$1.$2')
     });
-    this.requests.push(DataView.fromString('0'));
+    this.requests.push(VERSION_COMMAND);
     return observable;
   }
 
   reset() {
-    this.requests.push(DataView.fromString('=10'));
+    this.requests.push(RESET_COMMAND);
   }
 
   setLap(value: number) {
@@ -199,7 +206,7 @@ export class ControlUnit {
     this.connection.next(request.buffer);
   }
 
-  private reconnect(errors: Observable<any>) {
+  private doReconnect(errors: Observable<any>) {
     const state = this.state;
     return errors.do(error => {
       this.logger.error('Device error:', error);
@@ -207,8 +214,9 @@ export class ControlUnit {
       return state.value === 'connected' ? 0 : count + 1;
     }, 0).do(() => {
       state.next('disconnected');
-    }).concatMap(value => {
-      return Observable.timer(Math.min(MIN_RECONNECT_DELAY * (1 << value), MAX_RECONNECT_DELAY));
+    }).concatMap(count => {
+      const backoff = Math.pow(1.5, count);
+      return Observable.timer(Math.min(MIN_RECONNECT_DELAY * backoff, MAX_RECONNECT_DELAY));
     }).do(() => {
       state.next('connecting');
     });

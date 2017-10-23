@@ -88,9 +88,45 @@ leaderboard {
         color: magenta !important;
     }
 
-    span.pit {
+    // TODO: refactor status styles
+    span.inpit {
+        color: white;
         font-size: 75%;
         vertical-align: middle;
+    }
+
+    span.pitenter {
+        color: orangered;
+        font-size: 75%;
+        vertical-align: middle;
+    }
+
+    span.pos-up {
+        color: #0f0;
+        font-size: 75%;
+        &:before {
+            content: "▲";
+            display: inline-block;
+            width: 1em;
+        }
+    }
+    span.pos-dn {
+        color: orangered;
+        font-size: 75%;
+        &:before {
+            content: "▼";
+            display: inline-block;
+            width: 1em;
+        }
+    }
+    span.pos-eq {
+        color: white;
+        font-size: 75%;
+        &:before {
+            content: "◀";
+            display: inline-block;
+            width: 1em;
+        }
     }
 
     gauge {

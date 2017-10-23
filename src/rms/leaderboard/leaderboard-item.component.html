@@ -67,6 +67,10 @@
     </ng-template>
     <ng-template ngSwitchCase="status">
         <checkerboard cols="7" rows="5" *ngIf="item.finished"></checkerboard>
-        <span *ngIf="!item.finished && item.pit" class="pit">PIT</span>
+        <span *ngIf="!item.finished && item.pit" [ngClass]="item.refuel ? 'inpit' : 'pitenter'">PIT</span>
+        <span *ngIf="!item.finished && !item.pit && item.gridpos != null && item.laps && items.length > 2"
+            [ngClass]="item.gridpos > item.position ? 'pos-up' : item.gridpos < item.position ? 'pos-dn' : 'pos-eq'">
+            {{abs(item.gridpos - item.position)}}
+        </span>
     </ng-template>
 </div>

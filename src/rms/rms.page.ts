@@ -107,7 +107,7 @@ export class RmsPage implements OnDestroy, OnInit {
     });
     this.pitlane = mode.map(value => (value & 0x04) != 0);
 
-    this.keySupported = this.cu.getVersion().distinctUntilChanged().map(v => v >= '5.331');
+    this.keySupported = this.cu.getVersion().distinctUntilChanged().map(v => v >= '5331');
   }
 
   ngOnInit() {
@@ -144,7 +144,7 @@ export class RmsPage implements OnDestroy, OnInit {
       return Observable.combineLatest(...observables);
     });
 
-    let best = [Infinity, Infinity, Infinity, Infinity];
+    const best = [Infinity, Infinity, Infinity, Infinity];
     const events = Observable.merge(
       session.grid.map(obs => obs.pairwise()).mergeAll().mergeMap(([prev, curr]) => {
         const events = [];
@@ -187,9 +187,23 @@ export class RmsPage implements OnDestroy, OnInit {
       return <[string, any]>[event, id !== null ? drivers[id] : null];
     });
 
+    // TODO: convert to Observable.scan()?
+    const gridpos = [];
+    const pitfuel = [];
     this.ranking = session.ranking.combineLatest(drivers).map(([ranks, drivers]) => {
       return ranks.map((item, index) => {
-        return Object.assign({}, item, { position: index, driver: drivers[item.id] });
+        if (this.options.mode == 'race' && gridpos[item.id] === undefined && item.time !== undefined) {
+          gridpos[item.id] = index;
+        }
+        if (!item.pit || item.fuel < pitfuel[item.id]) {
+          pitfuel[item.id] = item.fuel;
+        }
+        return Object.assign({}, item, {
+          position: index,
+          driver: drivers[item.id],
+          gridpos: gridpos[item.id],
+          refuel: item.pit && item.fuel > pitfuel[item.id]
+        });
       });
     }).share();
 
