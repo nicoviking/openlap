@@ -1,13 +1,8 @@
 Open Lap
 ========================================================================
 
-.. image:: https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png
-   :target: https://play.google.com/store/apps/details?id=at.co.kemmer.openlap
-   :alt: Get it on Google Play
-
-.. image:: https://linkmaker.itunes.apple.com/en-us/badge-lrg.svg?releaseDate=2019-01-06&kind=iossoftware&bubble=ios_apps
-   :target: https://itunes.apple.com/us/app/open-lap/id1448048406
-   :alt: Download on the App Store
+[![Get it on Google Play](https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=at.co.kemmer.openlap)
+[![Download on the App Store](https://linkmaker.itunes.apple.com/en-us/badge-lrg.svg?releaseDate=2019-01-06&kind=iossoftware&bubble=ios_apps)](https://itunes.apple.com/us/app/open-lap/id1448048406)
 
 Open Lap is a simple, no-nonsense slot car race management app for
 Carrera® DIGITAL 124/132 systems.
